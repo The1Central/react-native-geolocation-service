@@ -1,13 +1,17 @@
 import Foundation
 import CoreLocation
 
+// swiftlint:disable identifier_name
 let DEFAULT_DISTANCE_FILTER: CLLocationDistance = 100
+// swiftlint:enable identifier_name
 
+// swiftlint:disable identifier_name
 enum LocationError: Int {
   case PERMISSION_DENIED = 1
   case POSITION_UNAVAILABLE
   case TIMEOUT
 }
+// swiftlint:enable identifier_name
 
 enum AuthorizationStatus: String {
   case disabled, granted, denied, restricted
@@ -19,11 +23,11 @@ class RNFusedLocation: RCTEventEmitter {
   private var hasListeners: Bool = false
   private var lastLocation: [String: Any] = [:]
   private var observing: Bool = false
-  private var timeoutTimer: Timer? = nil
+  private var timeoutTimer: Timer?
   private var useSignificantChanges: Bool = false
-  private var resolveAuthorizationStatus: RCTPromiseResolveBlock? = nil
-  private var successCallback: RCTResponseSenderBlock? = nil
-  private var errorCallback: RCTResponseSenderBlock? = nil
+  private var resolveAuthorizationStatus: RCTPromiseResolveBlock?
+  private var successCallback: RCTResponseSenderBlock?
+  private var errorCallback: RCTResponseSenderBlock?
 
   override init() {
     super.init()
@@ -41,7 +45,7 @@ class RNFusedLocation: RCTEventEmitter {
 
     timeoutTimer?.invalidate()
 
-    locationManager.delegate = nil;
+    locationManager.delegate = nil
   }
 
   // MARK: Bridge Method
@@ -49,7 +53,7 @@ class RNFusedLocation: RCTEventEmitter {
     _ level: String,
     resolve: @escaping RCTPromiseResolveBlock,
     reject: @escaping RCTPromiseRejectBlock
-  ) -> Void {
+  ) {
     checkPlistKeys(authorizationLevel: level)
 
     if !CLLocationManager.locationServicesEnabled() {
@@ -85,13 +89,15 @@ class RNFusedLocation: RCTEventEmitter {
     _ options: [String: Any],
     successCallback: @escaping RCTResponseSenderBlock,
     errorCallback: @escaping RCTResponseSenderBlock
-  ) -> Void {
+  ) {
     let distanceFilter = options["distanceFilter"] as? Double ?? kCLDistanceFilterNone
     let maximumAge = options["maximumAge"] as? Double ?? Double.infinity
     let timeout = options["timeout"] as? Double ?? Double.infinity
 
     if !lastLocation.isEmpty {
-      let elapsedTime = (Date().timeIntervalSince1970 * 1000) - (lastLocation["timestamp"] as! Double)
+        // swiftlint:disable force_cast
+      let elapsedTime = (Date().timeIntervalSince1970 * 1_000) - (lastLocation["timestamp"] as! Double)
+        // swiftlint:enable force_cast
 
       if elapsedTime < maximumAge {
         // Return cached location
@@ -111,7 +117,7 @@ class RNFusedLocation: RCTEventEmitter {
 
     if timeout > 0 && timeout != Double.infinity {
       timeoutTimer = Timer.scheduledTimer(
-        timeInterval: timeout / 1000.0, // timeInterval is in seconds
+        timeInterval: timeout / 1_000.0, // timeInterval is in seconds
         target: self,
         selector: #selector(timerFired),
         userInfo: [
@@ -124,7 +130,7 @@ class RNFusedLocation: RCTEventEmitter {
   }
 
   // MARK: Bridge Method
-  @objc func startLocationUpdate(_ options: [String: Any]) -> Void {
+  @objc func startLocationUpdate(_ options: [String: Any]) {
     let distanceFilter = options["distanceFilter"] as? Double ?? DEFAULT_DISTANCE_FILTER
     let significantChanges = options["useSignificantChanges"] as? Bool ?? false
 
@@ -142,7 +148,7 @@ class RNFusedLocation: RCTEventEmitter {
   }
 
   // MARK: Bridge Method
-  @objc func stopLocationUpdate() -> Void {
+  @objc func stopLocationUpdate() {
     useSignificantChanges
       ? locationManager.stopMonitoringSignificantLocationChanges()
       : locationManager.stopUpdatingLocation()
@@ -150,17 +156,19 @@ class RNFusedLocation: RCTEventEmitter {
     observing = false
   }
 
-  @objc func timerFired(timer: Timer) -> Void {
+  @objc func timerFired(timer: Timer) {
+    // swiftlint:disable force_cast
     let data = timer.userInfo as! [String: Any]
     let errorCallback = data["errorCallback"] as! RCTResponseSenderBlock
     let manager = data["manager"] as! CLLocationManager
+    // swiftlint:enable force_cast
 
     manager.stopUpdatingLocation()
     manager.delegate = nil
     errorCallback([generateErrorResponse(code: LocationError.TIMEOUT.rawValue)])
   }
 
-  private func checkPlistKeys(authorizationLevel: String) -> Void {
+  private func checkPlistKeys(authorizationLevel: String) {
     #if DEBUG
       let key1 = Bundle.main.object(forInfoDictionaryKey: "NSLocationWhenInUseUsageDescription")
       let key2 = Bundle.main.object(forInfoDictionaryKey: "NSLocationAlwaysUsageDescription")
@@ -249,7 +257,7 @@ class RNFusedLocation: RCTEventEmitter {
 extension RNFusedLocation {
   override var methodQueue: DispatchQueue {
     get {
-      return DispatchQueue.main
+      DispatchQueue.main
     }
   }
 
@@ -261,11 +269,11 @@ extension RNFusedLocation {
     return ["geolocationDidChange", "geolocationError"]
   }
 
-  override func startObserving() -> Void {
+  override func startObserving() {
     hasListeners = true
   }
 
-  override func stopObserving() -> Void {
+  override func stopObserving() {
     hasListeners = false
   }
 }
@@ -302,7 +310,7 @@ extension RNFusedLocation: CLLocationManagerDelegate {
         "heading": location.course,
         "speed": location.speed
       ],
-      "timestamp": location.timestamp.timeIntervalSince1970 * 1000 // ms
+      "timestamp": location.timestamp.timeIntervalSince1970 * 1_000 // ms
     ]
 
     if manager.isEqual(locationManager) && hasListeners && observing {
